@@ -50,7 +50,7 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({
         }
     };
 
-    if (!isOpen) return null;
+    if (!isOpen) return <></>;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

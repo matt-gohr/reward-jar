@@ -61,7 +61,8 @@ const TokenJar: React.FC<TokenJarProps> = ({
     };
 
     const handleDeleteToken = async (tokenId: string): Promise<void> => {
-        if (!confirm("Are you sure you want to delete this jar?")) return;
+        if (!window.confirm("Are you sure you want to delete this jar?"))
+            return;
 
         try {
             const response = await tokenApi.delete(tokenId);

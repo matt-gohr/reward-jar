@@ -9,12 +9,15 @@ const app = express();
 app.use(helmet());
 
 // CORS configuration
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-domain.com'] // Replace with your actual domain
-    : ['http://localhost:3000', 'http://localhost:3001'],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin:
+      process.env['NODE_ENV'] === 'production'
+        ? ['https://your-domain.com'] // Replace with your actual domain
+        : ['http://localhost:3000', 'http://localhost:3001'],
+    credentials: true,
+  })
+);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -39,15 +42,23 @@ app.use('*', (req, res) => {
 });
 
 // Error handling middleware
-app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Error:', error);
-  
-  res.status(error.status || 500).json({
-    success: false,
-    error: process.env.NODE_ENV === 'production' 
-      ? 'Internal server error' 
-      : error.message,
-  });
-});
+app.use(
+  (
+    error: any,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
+    console.error('Error:', error);
 
-export default app; 
+    res.status(error.status || 500).json({
+      success: false,
+      error:
+        process.env['NODE_ENV'] === 'production'
+          ? 'Internal server error'
+          : error.message,
+    });
+  }
+);
+
+export default app;
