@@ -42,8 +42,6 @@ const AddTokenModal: React.FC<AddTokenModalProps> = ({
         "🎪",
         "🎨",
         "🎭",
-        "🎪",
-        "🎯",
         "🎲",
         "🎮",
         "🎸",
