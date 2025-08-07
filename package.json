@@ -1,0 +1,31 @@
+{
+    "name": "reward-jar",
+    "version": "1.0.0",
+    "description": "A personal reward token tracking app for kids",
+    "private": true,
+    "workspaces": [
+        "frontend",
+        "backend"
+    ],
+    "scripts": {
+        "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+        "dev:frontend": "npm run dev --workspace=frontend",
+        "dev:backend": "npm run dev --workspace=backend",
+        "build": "npm run build --workspaces",
+        "deploy": "npm run deploy --workspace=backend",
+        "install:all": "npm install && npm install --workspace=frontend && npm install --workspace=backend"
+    },
+    "devDependencies": {
+        "concurrently": "^8.2.2"
+    },
+    "keywords": [
+        "reward",
+        "tokens",
+        "kids",
+        "aws",
+        "serverless",
+        "react"
+    ],
+    "author": "Matthew Gohr",
+    "license": "MIT"
+}
