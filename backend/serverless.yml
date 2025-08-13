@@ -4,6 +4,7 @@ frameworkVersion: '3'
 
 provider:
   name: aws
+  profile: personal-admin
   runtime: nodejs18.x
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-1'}
@@ -19,16 +20,7 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
       Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
-  cors:
-    origin: '*'
-    headers:
-      - Content-Type
-      - X-Amz-Date
-      - Authorization
-      - X-Api-Key
-      - X-Amz-Security-Token
-      - X-Amz-User-Agent
-
+  
 functions:
   api:
     handler: dist/handler.handler
@@ -77,7 +69,6 @@ resources:
           Enabled: true
 
 plugins:
-  - serverless-plugin-typescript
   - serverless-offline
 
 custom:

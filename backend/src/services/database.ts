@@ -18,8 +18,11 @@ import {
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 
-const client = new DynamoDBClient({});
-const dynamoDB = DynamoDBDocumentClient.from(client);
+const dynamoDB = DynamoDBDocumentClient.from(
+  new DynamoDBClient({
+    region: 'us-east-1',
+  })
+);
 const TABLE_NAME = process.env['DYNAMODB_TABLE'] || 'reward-jar-api-dev';
 
 export class DatabaseService {

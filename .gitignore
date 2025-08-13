@@ -8,6 +8,7 @@ yarn-error.log*
 
 # Production builds
 build/
+.build/
 dist/
 .next/
 out/
