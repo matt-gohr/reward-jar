@@ -4,6 +4,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+*.code-workspace
+
 # Production builds
 build/
 dist/

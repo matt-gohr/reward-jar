@@ -1,5 +1,4 @@
-export interface Token {
-  id: string;
+export interface Token extends DynamoDBItem {
   name: string;
   count: number;
   color: string;
@@ -8,8 +7,7 @@ export interface Token {
   updatedAt: string;
 }
 
-export interface Reward {
-  id: string;
+export interface Reward extends DynamoDBItem {
   name: string;
   description: string;
   tokenCost: number;
@@ -19,9 +17,8 @@ export interface Reward {
   updatedAt: string;
 }
 
-export interface Transaction {
-  id: string;
-  type: 'earn' | 'spend';
+export interface Transaction extends DynamoDBItem {
+  transactionType: 'earn' | 'spend';
   tokenId: string;
   tokenName: string;
   amount: number;
@@ -33,6 +30,58 @@ export interface DynamoDBItem {
   id: string;
   type: 'token' | 'reward' | 'transaction';
   [key: string]: any;
+}
+
+// Type guards for safe type conversion
+export function isToken(item: DynamoDBItem): item is Token {
+  return (
+    item.type === 'token' &&
+    typeof item['name'] === 'string' &&
+    typeof item['count'] === 'number' &&
+    typeof item['color'] === 'string' &&
+    typeof item['icon'] === 'string' &&
+    typeof item['createdAt'] === 'string' &&
+    typeof item['updatedAt'] === 'string'
+  );
+}
+
+export function isReward(item: DynamoDBItem): item is Reward {
+  return (
+    item.type === 'reward' &&
+    typeof item['name'] === 'string' &&
+    typeof item['description'] === 'string' &&
+    typeof item['tokenCost'] === 'number' &&
+    typeof item['tokenType'] === 'string' &&
+    typeof item['isActive'] === 'boolean' &&
+    typeof item['createdAt'] === 'string' &&
+    typeof item['updatedAt'] === 'string'
+  );
+}
+
+export function isTransaction(item: DynamoDBItem): item is Transaction {
+  return (
+    item.type === 'transaction' &&
+    (item['transactionType'] === 'earn' ||
+      item['transactionType'] === 'spend') &&
+    typeof item['tokenId'] === 'string' &&
+    typeof item['tokenName'] === 'string' &&
+    typeof item['amount'] === 'number' &&
+    typeof item['description'] === 'string' &&
+    typeof item['timestamp'] === 'string'
+  );
+}
+
+// Helper functions to filter arrays by type
+export function filterTokens(items: DynamoDBItem[]): Token[] {
+  return items.filter(isToken);
+}
+
+export function filterRewards(items: DynamoDBItem[]): Reward[] {
+  return items.filter(isReward);
+}
+
+export function filterTransactions(items: DynamoDBItem[]): Transaction[] {
+  return items.filter(isTransaction);
 }
 
 export interface ApiResponse<T = any> {
@@ -76,4 +125,4 @@ export interface CreateRewardRequest {
 export interface UpdateTokenRequest {
   amount: number;
   description: string;
-} 
+}

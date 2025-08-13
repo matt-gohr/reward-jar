@@ -1,16 +1,17 @@
-import { ApiResponse, Transaction } from '../types';
+import { ApiResponse, Transaction, filterTransactions } from '../types';
 import { Request, Response } from 'express';
 
 import { databaseService } from '../services/database';
 
 export class TransactionController {
   // Get all transactions
-  async getAllTransactions(req: Request, res: Response): Promise<void> {
+  async getAllTransactions(_req: Request, res: Response): Promise<void> {
     try {
       const transactions = await databaseService.queryByType('transaction');
+      const validTransactions = filterTransactions(transactions);
       const response: ApiResponse<Transaction[]> = {
         success: true,
-        data: transactions as Transaction[],
+        data: validTransactions,
       };
       res.json(response);
     } catch (error) {
@@ -27,7 +28,15 @@ export class TransactionController {
   async getTransactionsByToken(req: Request, res: Response): Promise<void> {
     try {
       const { tokenId } = req.params;
-      
+      if (!tokenId) {
+        const response: ApiResponse = {
+          success: false,
+          error: 'Token ID is required',
+        };
+        res.status(400).json(response);
+        return;
+      }
+
       // Verify that the token exists
       const token = await databaseService.getById(tokenId);
       if (!token || token.type !== 'token') {
@@ -40,20 +49,21 @@ export class TransactionController {
       }
 
       const transactions = await databaseService.queryByTokenId(tokenId);
+      const validTransactions = filterTransactions(transactions);
       const response: ApiResponse<Transaction[]> = {
         success: true,
-        data: transactions as Transaction[],
+        data: validTransactions,
       };
       res.json(response);
     } catch (error) {
       console.error('Error getting transactions by token:', error);
       const response: ApiResponse = {
         success: false,
-        error: 'Failed to get transactions',
+        error: 'Failed to get transactions by token',
       };
       res.status(500).json(response);
     }
   }
 }
 
-export const transactionController = new TransactionController(); 
+export const transactionController = new TransactionController();

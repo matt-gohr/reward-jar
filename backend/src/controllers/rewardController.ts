@@ -1,4 +1,11 @@
-import { ApiResponse, CreateRewardRequest, Reward } from '../types';
+import {
+  ApiResponse,
+  CreateRewardRequest,
+  Reward,
+  filterRewards,
+  isReward,
+  isToken,
+} from '../types';
 import { Request, Response } from 'express';
 
 import Joi from 'joi';
@@ -14,12 +21,13 @@ const createRewardSchema = Joi.object({
 
 export class RewardController {
   // Get all rewards
-  async getAllRewards(req: Request, res: Response): Promise<void> {
+  async getAllRewards(_req: Request, res: Response): Promise<void> {
     try {
       const rewards = await databaseService.queryByType('reward');
+      const validRewards = filterRewards(rewards);
       const response: ApiResponse<Reward[]> = {
         success: true,
-        data: rewards as Reward[],
+        data: validRewards,
       };
       res.json(response);
     } catch (error) {
@@ -39,17 +47,17 @@ export class RewardController {
       if (error) {
         const response: ApiResponse = {
           success: false,
-          error: error.details[0].message,
+          error: error.details[0]?.message || 'Validation error',
         };
         res.status(400).json(response);
         return;
       }
 
       const rewardData: CreateRewardRequest = value;
-      
+
       // Verify that the token type exists
       const token = await databaseService.getById(rewardData.tokenType);
-      if (!token || token.type !== 'token') {
+      if (!token || !isToken(token)) {
         const response: ApiResponse = {
           success: false,
           error: 'Invalid token type',
@@ -59,7 +67,7 @@ export class RewardController {
       }
 
       const reward = await databaseService.createReward(rewardData);
-      
+
       const response: ApiResponse<Reward> = {
         success: true,
         data: reward,
@@ -80,19 +88,28 @@ export class RewardController {
   async updateReward(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      if (!id) {
+        const response: ApiResponse = {
+          success: false,
+          error: 'Reward ID is required',
+        };
+        res.status(400).json(response);
+        return;
+      }
+
       const { error, value } = createRewardSchema.validate(req.body);
-      
+
       if (error) {
         const response: ApiResponse = {
           success: false,
-          error: error.details[0].message,
+          error: error.details[0]?.message || 'Validation error',
         };
         res.status(400).json(response);
         return;
       }
 
       const reward = await databaseService.getById(id);
-      if (!reward || reward.type !== 'reward') {
+      if (!reward || !isReward(reward)) {
         const response: ApiResponse = {
           success: false,
           error: 'Reward not found',
@@ -104,7 +121,7 @@ export class RewardController {
       // Verify that the token type exists if it's being changed
       if (value.tokenType !== reward.tokenType) {
         const token = await databaseService.getById(value.tokenType);
-        if (!token || token.type !== 'token') {
+        if (!token || !isToken(token)) {
           const response: ApiResponse = {
             success: false,
             error: 'Invalid token type',
@@ -115,9 +132,18 @@ export class RewardController {
       }
 
       const updatedReward = await databaseService.update(id, value);
+      if (!updatedReward || !isReward(updatedReward)) {
+        const response: ApiResponse = {
+          success: false,
+          error: 'Failed to update reward',
+        };
+        res.status(500).json(response);
+        return;
+      }
+
       const response: ApiResponse<Reward> = {
         success: true,
-        data: updatedReward as Reward,
+        data: updatedReward,
         message: 'Reward updated successfully',
       };
       res.json(response);
@@ -135,9 +161,17 @@ export class RewardController {
   async deleteReward(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      
+      if (!id) {
+        const response: ApiResponse = {
+          success: false,
+          error: 'Reward ID is required',
+        };
+        res.status(400).json(response);
+        return;
+      }
+
       const reward = await databaseService.getById(id);
-      if (!reward || reward.type !== 'reward') {
+      if (!reward || !isReward(reward)) {
         const response: ApiResponse = {
           success: false,
           error: 'Reward not found',
@@ -166,9 +200,17 @@ export class RewardController {
   async toggleRewardActive(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      
+      if (!id) {
+        const response: ApiResponse = {
+          success: false,
+          error: 'Reward ID is required',
+        };
+        res.status(400).json(response);
+        return;
+      }
+
       const reward = await databaseService.getById(id);
-      if (!reward || reward.type !== 'reward') {
+      if (!reward || !isReward(reward)) {
         const response: ApiResponse = {
           success: false,
           error: 'Reward not found',
@@ -178,10 +220,19 @@ export class RewardController {
       }
 
       const updatedReward = await databaseService.toggleRewardActive(id);
+      if (!updatedReward) {
+        const response: ApiResponse = {
+          success: false,
+          error: 'Failed to toggle reward status',
+        };
+        res.status(500).json(response);
+        return;
+      }
+
       const response: ApiResponse<Reward> = {
         success: true,
-        data: updatedReward!,
-        message: `Reward ${updatedReward!.isActive ? 'activated' : 'deactivated'} successfully`,
+        data: updatedReward,
+        message: `Reward ${updatedReward.isActive ? 'activated' : 'deactivated'} successfully`,
       };
       res.json(response);
     } catch (error) {
@@ -195,4 +246,4 @@ export class RewardController {
   }
 }
 
-export const rewardController = new RewardController(); 
+export const rewardController = new RewardController();

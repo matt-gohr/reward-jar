@@ -1,4 +1,10 @@
-import { ApiResponse, CreateTokenRequest, Token, UpdateTokenRequest } from '../types';
+import {
+  ApiResponse,
+  CreateTokenRequest,
+  Token,
+  filterTokens,
+  isToken,
+} from '../types';
 import { Request, Response } from 'express';
 
 import Joi from 'joi';
@@ -6,24 +12,25 @@ import { databaseService } from '../services/database';
 
 // Validation schemas
 const createTokenSchema = Joi.object({
-  name: Joi.string().min(1).max(50).required(),
-  color: Joi.string().pattern(/^#[0-9A-F]{6}$/i).required(),
-  icon: Joi.string().min(1).max(10).required(),
+  name: Joi.string().min(1).max(100).required(),
+  color: Joi.string().min(1).max(7).required(),
+  icon: Joi.string().min(1).max(50).required(),
 });
 
 const updateTokenSchema = Joi.object({
-  amount: Joi.number().integer().min(1).required(),
-  description: Joi.string().max(200).optional(),
+  amount: Joi.number().integer().required(),
+  description: Joi.string().max(500).required(),
 });
 
 export class TokenController {
   // Get all tokens
-  async getAllTokens(req: Request, res: Response): Promise<void> {
+  async getAllTokens(_req: Request, res: Response): Promise<void> {
     try {
       const tokens = await databaseService.queryByType('token');
+      const validTokens = filterTokens(tokens);
       const response: ApiResponse<Token[]> = {
         success: true,
-        data: tokens as Token[],
+        data: validTokens,
       };
       res.json(response);
     } catch (error) {
@@ -43,7 +50,7 @@ export class TokenController {
       if (error) {
         const response: ApiResponse = {
           success: false,
-          error: error.details[0].message,
+          error: error.details[0]?.message || 'Validation error',
         };
         res.status(400).json(response);
         return;
@@ -51,7 +58,7 @@ export class TokenController {
 
       const tokenData: CreateTokenRequest = value;
       const token = await databaseService.createToken(tokenData);
-      
+
       const response: ApiResponse<Token> = {
         success: true,
         data: token,
@@ -72,19 +79,27 @@ export class TokenController {
   async updateToken(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { error, value } = createTokenSchema.validate(req.body);
-      
+      if (!id) {
+        const response: ApiResponse = {
+          success: false,
+          error: 'Token ID is required',
+        };
+        res.status(400).json(response);
+        return;
+      }
+
+      const { error, value } = updateTokenSchema.validate(req.body);
       if (error) {
         const response: ApiResponse = {
           success: false,
-          error: error.details[0].message,
+          error: error.details[0]?.message || 'Validation error',
         };
         res.status(400).json(response);
         return;
       }
 
       const token = await databaseService.getById(id);
-      if (!token || token.type !== 'token') {
+      if (!token || !isToken(token)) {
         const response: ApiResponse = {
           success: false,
           error: 'Token not found',
@@ -94,9 +109,18 @@ export class TokenController {
       }
 
       const updatedToken = await databaseService.update(id, value);
+      if (!updatedToken || !isToken(updatedToken)) {
+        const response: ApiResponse = {
+          success: false,
+          error: 'Failed to update token',
+        };
+        res.status(500).json(response);
+        return;
+      }
+
       const response: ApiResponse<Token> = {
         success: true,
-        data: updatedToken as Token,
+        data: updatedToken,
         message: 'Token updated successfully',
       };
       res.json(response);
@@ -114,9 +138,17 @@ export class TokenController {
   async deleteToken(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      
+      if (!id) {
+        const response: ApiResponse = {
+          success: false,
+          error: 'Token ID is required',
+        };
+        res.status(400).json(response);
+        return;
+      }
+
       const token = await databaseService.getById(id);
-      if (!token || token.type !== 'token') {
+      if (!token || !isToken(token)) {
         const response: ApiResponse = {
           success: false,
           error: 'Token not found',
@@ -141,25 +173,31 @@ export class TokenController {
     }
   }
 
-  // Add tokens to a jar
-  async addTokens(req: Request, res: Response): Promise<void> {
+  // Earn tokens
+  async earnTokens(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
       const { error, value } = updateTokenSchema.validate(req.body);
-      
       if (error) {
         const response: ApiResponse = {
           success: false,
-          error: error.details[0].message,
+          error: error.details[0]?.message || 'Validation error',
         };
         res.status(400).json(response);
         return;
       }
 
-      const tokenData: UpdateTokenRequest = value;
+      const { id } = req.params;
+      if (!id) {
+        const response: ApiResponse = {
+          success: false,
+          error: 'Token ID is required',
+        };
+        res.status(400).json(response);
+        return;
+      }
+
       const token = await databaseService.getById(id);
-      
-      if (!token || token.type !== 'token') {
+      if (!token || !isToken(token)) {
         const response: ApiResponse = {
           success: false,
           error: 'Token not found',
@@ -168,53 +206,69 @@ export class TokenController {
         return;
       }
 
-      // Update token count
-      const updatedToken = await databaseService.updateTokenCount(id, tokenData.amount);
-      
+      const updatedToken = await databaseService.updateTokenCount(
+        id,
+        value.amount
+      );
+      if (!updatedToken) {
+        const response: ApiResponse = {
+          success: false,
+          error: 'Failed to update token count',
+        };
+        res.status(500).json(response);
+        return;
+      }
+
       // Create transaction record
       await databaseService.createTransaction({
         type: 'earn',
         tokenId: id,
-        tokenName: token.name,
-        amount: tokenData.amount,
-        description: tokenData.description || 'Tokens added',
+        tokenName: token['name'],
+        amount: value.amount,
+        description: value.description,
       });
 
       const response: ApiResponse<Token> = {
         success: true,
-        data: updatedToken!,
-        message: `${tokenData.amount} tokens added successfully`,
+        data: updatedToken,
+        message: `Earned ${value.amount} tokens`,
       };
       res.json(response);
     } catch (error) {
-      console.error('Error adding tokens:', error);
+      console.error('Error earning tokens:', error);
       const response: ApiResponse = {
         success: false,
-        error: 'Failed to add tokens',
+        error: 'Failed to earn tokens',
       };
       res.status(500).json(response);
     }
   }
 
-  // Spend tokens from a jar
+  // Spend tokens
   async spendTokens(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
       const { error, value } = updateTokenSchema.validate(req.body);
-      
       if (error) {
         const response: ApiResponse = {
           success: false,
-          error: error.details[0].message,
+          error: error.details[0]?.message || 'Validation error',
         };
         res.status(400).json(response);
         return;
       }
 
-      const tokenData: UpdateTokenRequest = value;
+      const { id } = req.params;
+      if (!id) {
+        const response: ApiResponse = {
+          success: false,
+          error: 'Token ID is required',
+        };
+        res.status(400).json(response);
+        return;
+      }
+
       const token = await databaseService.getById(id);
-      
-      if (!token || token.type !== 'token') {
+      if (!token || !isToken(token)) {
         const response: ApiResponse = {
           success: false,
           error: 'Token not found',
@@ -223,32 +277,41 @@ export class TokenController {
         return;
       }
 
-      // Check if enough tokens are available
-      if (token.count < tokenData.amount) {
+      if (token['count'] < value.amount) {
         const response: ApiResponse = {
           success: false,
-          error: 'Not enough tokens available',
+          error: 'Insufficient tokens',
         };
         res.status(400).json(response);
         return;
       }
 
-      // Update token count (negative amount for spending)
-      const updatedToken = await databaseService.updateTokenCount(id, -tokenData.amount);
-      
+      const updatedToken = await databaseService.updateTokenCount(
+        id,
+        -value.amount
+      );
+      if (!updatedToken) {
+        const response: ApiResponse = {
+          success: false,
+          error: 'Failed to update token count',
+        };
+        res.status(500).json(response);
+        return;
+      }
+
       // Create transaction record
       await databaseService.createTransaction({
         type: 'spend',
         tokenId: id,
-        tokenName: token.name,
-        amount: tokenData.amount,
-        description: tokenData.description || 'Tokens spent',
+        tokenName: token['name'],
+        amount: value.amount,
+        description: value.description,
       });
 
       const response: ApiResponse<Token> = {
         success: true,
-        data: updatedToken!,
-        message: `${tokenData.amount} tokens spent successfully`,
+        data: updatedToken,
+        message: `Spent ${value.amount} tokens`,
       };
       res.json(response);
     } catch (error) {
@@ -262,4 +325,4 @@ export class TokenController {
   }
 }
 
-export const tokenController = new TokenController(); 
+export const tokenController = new TokenController();
