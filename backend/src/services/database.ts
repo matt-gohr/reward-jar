@@ -1,4 +1,12 @@
 import {
+  DeleteCommand,
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+  UpdateCommand,
+} from '@aws-sdk/lib-dynamodb';
+import {
   DynamoDBItem,
   Reward,
   Token,
@@ -8,9 +16,10 @@ import {
   isTransaction,
 } from '../types';
 
-import AWS from 'aws-sdk';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 
-const dynamoDB = new AWS.DynamoDB.DocumentClient();
+const client = new DynamoDBClient({});
+const dynamoDB = DynamoDBDocumentClient.from(client);
 const TABLE_NAME = process.env['DYNAMODB_TABLE'] || 'reward-jar-api-dev';
 
 export class DatabaseService {
@@ -23,23 +32,23 @@ export class DatabaseService {
       updatedAt: timestamp,
     };
 
-    await dynamoDB
-      .put({
+    await dynamoDB.send(
+      new PutCommand({
         TableName: TABLE_NAME,
         Item: newItem,
       })
-      .promise();
+    );
 
     return newItem;
   }
 
   async getById(id: string): Promise<DynamoDBItem | null> {
-    const result = await dynamoDB
-      .get({
+    const result = await dynamoDB.send(
+      new GetCommand({
         TableName: TABLE_NAME,
         Key: { id },
       })
-      .promise();
+    );
 
     return (result.Item as DynamoDBItem) || null;
   }
@@ -67,8 +76,8 @@ export class DatabaseService {
     expressionAttributeNames['#updatedAt'] = 'updatedAt';
     expressionAttributeValues[':updatedAt'] = timestamp;
 
-    const result = await dynamoDB
-      .update({
+    const result = await dynamoDB.send(
+      new UpdateCommand({
         TableName: TABLE_NAME,
         Key: { id },
         UpdateExpression: `SET ${updateExpression.join(', ')}`,
@@ -76,25 +85,25 @@ export class DatabaseService {
         ExpressionAttributeValues: expressionAttributeValues,
         ReturnValues: 'ALL_NEW',
       })
-      .promise();
+    );
 
     return (result.Attributes as DynamoDBItem) || null;
   }
 
   async delete(id: string): Promise<boolean> {
-    await dynamoDB
-      .delete({
+    await dynamoDB.send(
+      new DeleteCommand({
         TableName: TABLE_NAME,
         Key: { id },
       })
-      .promise();
+    );
 
     return true;
   }
 
   async queryByType(type: string): Promise<DynamoDBItem[]> {
-    const result = await dynamoDB
-      .query({
+    const result = await dynamoDB.send(
+      new QueryCommand({
         TableName: TABLE_NAME,
         IndexName: 'type-index',
         KeyConditionExpression: '#type = :type',
@@ -105,14 +114,14 @@ export class DatabaseService {
           ':type': type,
         },
       })
-      .promise();
+    );
 
     return (result.Items as DynamoDBItem[]) || [];
   }
 
   async queryByTokenId(tokenId: string): Promise<DynamoDBItem[]> {
-    const result = await dynamoDB
-      .query({
+    const result = await dynamoDB.send(
+      new QueryCommand({
         TableName: TABLE_NAME,
         IndexName: 'tokenId-index',
         KeyConditionExpression: '#tokenId = :tokenId',
@@ -123,7 +132,7 @@ export class DatabaseService {
           ':tokenId': tokenId,
         },
       })
-      .promise();
+    );
 
     return (result.Items as DynamoDBItem[]) || [];
   }

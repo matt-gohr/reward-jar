@@ -6,6 +6,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "ts-node-dev --respawn --transpile-only src/local.ts",
+    "debug": "ts-node-dev --inspect=9229 --respawn --transpile-only src/local.ts",
+    "debug:break": "ts-node-dev --inspect-brk=9229 --respawn --transpile-only src/local.ts",
     "deploy": "npm run build && serverless deploy",
     "deploy:prod": "npm run build && serverless deploy --stage prod",
     "test": "jest",
@@ -13,7 +15,8 @@
     "format": "prettier --write src/**/*.ts"
   },
   "dependencies": {
-    "aws-sdk": "^2.1490.0",
+    "@aws-sdk/client-dynamodb": "^3.470.0",
+    "@aws-sdk/lib-dynamodb": "^3.470.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "express-rate-limit": "^8.0.1",
