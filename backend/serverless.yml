@@ -70,8 +70,18 @@ resources:
 
 plugins:
   - serverless-offline
+  - serverless-domain-manager
 
 custom:
+  customDomain:
+    domainName: api.mattgohr.com
+    stage: ${self:provider.stage}
+    certificateName: api.mattgohr.com
+    certificateArn: arn:aws:acm:us-east-1:592057389220:certificate/847fd1b1-407d-4afb-b5a4-62d4c1a45e8c
+    endpointType: 'regional'
+    securityPolicy: tls_1_2
+    autoDomain: true
+    autoDomainWaitFor: true
   serverless-offline:
     httpPort: 3001
     noPrependStageInUrl: true 

@@ -1,0 +1,17 @@
+{
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "_daeab0f5d3b2eab054ae6a8de5d89d01.api.mattgohr.com",
+        "Type": "CNAME",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "_4fffd9e79b39f70d75f8954d59e5bc46.xlfgrmvvlj.acm-validations.aws"
+          }
+        ]
+      }
+    }
+  ]
+}
