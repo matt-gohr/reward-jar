@@ -6,6 +6,7 @@
   "scripts": {
     "build": "webpack --mode production",
     "build:dev": "webpack --mode development",
+    "watch": "nodemon --watch src --ext ts,js --exec \"npm run build:dev\"",
     "dev": "ts-node-dev --respawn --transpile-only src/local.ts",
     "offline": "npm run build:dev && serverless offline start",
     "offline:watch": "webpack --mode development --watch & serverless offline start --watch",
@@ -47,7 +48,8 @@
     "typescript": "^5.3.3",
     "webpack": "^5.89.0",
     "webpack-cli": "^5.1.4",
-    "webpack-node-externals": "^3.0.0"
+    "webpack-node-externals": "^3.0.0",
+    "nodemon": "^3.0.2"
   },
   "keywords": [
     "serverless",
