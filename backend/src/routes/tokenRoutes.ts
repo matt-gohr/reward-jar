@@ -18,6 +18,8 @@ router.delete('/:id', tokenController.deleteToken.bind(tokenController));
 // POST /api/tokens/:id/earn - Earn tokens
 router.post('/:id/earn', tokenController.earnTokens.bind(tokenController));
 
+router.post('/:id/add', tokenController.earnTokens.bind(tokenController));
+
 // POST /api/tokens/:id/spend - Spend tokens from a jar
 router.post('/:id/spend', tokenController.spendTokens.bind(tokenController));
 
