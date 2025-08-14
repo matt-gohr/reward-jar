@@ -21,6 +21,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 const dynamoDB = DynamoDBDocumentClient.from(
   new DynamoDBClient({
     region: 'us-east-1',
+    profile: 'personal-admin',
   })
 );
 const TABLE_NAME = process.env['DYNAMODB_TABLE'] || 'reward-jar-api-dev';
